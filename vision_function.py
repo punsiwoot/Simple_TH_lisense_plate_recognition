@@ -12,22 +12,26 @@ def local_plate(image_name:str, input_form="PATH"):
     cnts = cv2.findContours(canny, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     cnts = cnts[0] if len(cnts) == 2 else cnts[1]
     # Iterate thorugh contours and draw rectangles around contours
-    print(f"num of box : {len(cnts)}")
+    # print(f"num of box : {len(cnts)}")
     count = 0
     keep_box_coor = []
     keep_crop_image = []
     for c in cnts:
         x,y,w,h = cv2.boundingRect(c)
-        if (w>h) and (1.1<(w/h)<2.2) and (40<h<190):  # set filter box coor
+        if (w>h) and (1.5<(w/h)<2.2) and (40<h<190) and (w>140) and (170<(x+(w/2))<330) :  # set filter box coor  (150<(x+(w/2))<350)
             count += 1
             # cv2.rectangle(image, (x, y), (x + w, y + h), (36,255,12), 2)
-            keep_box_coor.append([x,y,w,h])
-            keep_crop_image.append(gray[y:y+h,x:x+w])
+            keep_box_coor.append([w,h,x,y])
+    keep_box_coor.sort()
+    for j in keep_box_coor:
+        keep_crop_image.append(gray[j[3]:j[3]+j[1],j[2]:j[2]+j[0]])
 
 
-    print(f"number of box that found : {count}")
+
+    # print(f"number of box that found : {count}")
     # cv2.imshow('canny', canny)
     # cv2.imshow('image', image)
     # cv2.imshow("blur",blur)
     # cv2.waitKey(0)
-    return keep_box_coor , keep_crop_image
+    return keep_box_coor ,keep_crop_image, image
+
