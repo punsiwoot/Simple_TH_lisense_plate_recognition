@@ -1,5 +1,6 @@
 import cv2
 import tensorflow as tf
+import tensorflow.keras.layers as nn
 
 def process_img(img):
     # gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
@@ -9,7 +10,21 @@ def process_img(img):
     tensor = tf.expand_dims(tensor,axis=0)
     return tensor
 
-
+def get_model_mlpc():
+    model = tf.keras.Sequential([
+    # nn.Rescaling(scale=1./255, offset=0.0),
+    nn.Conv2D(filters=32, kernel_size = (10,10), activation='relu', input_shape=(100, 200, 1)),
+    nn.Conv2D(filters=16, kernel_size = (5,5), activation='relu'),
+    nn.MaxPool2D(pool_size=(2, 2), strides=None, padding="valid", data_format=None),
+    nn.Flatten(),
+    nn.Dense(30,activation='relu'),
+    nn.Dense(10,activation="relu"),
+    nn.Dense(1)
+    ])
+    model.load_weights("weight/clp/weight")
+    input_signature = [tf.TensorSpec(shape=(1,100,200,1), dtype=tf.float32)]
+    model_fn = tf.function(input_signature=input_signature)(model.call)
+    return  model_fn
 
 
 # Make predictions using the optimized function
@@ -17,9 +32,11 @@ def process_img(img):
 # input_signature = [tf.TensorSpec(shape=input_shape, dtype=tf.float32)]
 # predict_fn = tf.function(input_signature=input_signature)(model.call)
 
-def local_plate(image_name:str, input_form="PATH", DCN_filter = False , Model = None, detect_thresho = 0.6):
+def local_plate(image_name, input_form="PATH", DCN_filter = False , Model = None, detect_thresho = 0.6):
+    keep_box_coor = []
+    keep_crop_image = []
     if input_form == "PATH":
-        image = cv2.imread(image_name) # hard [4 40 44 38(stuck) 27 23]
+        image = cv2.imread(str(image_name)) # hard [4 40 44 38(stuck) 27 23]
     elif input_form == "IMG":
         image = image_name
     image = cv2.resize(image,[500,500])
@@ -31,8 +48,6 @@ def local_plate(image_name:str, input_form="PATH", DCN_filter = False , Model = 
     # Iterate thorugh contours and draw rectangles around contours
     # print(f"num of box : {len(cnts)}")
     count = 0
-    keep_box_coor = []
-    keep_crop_image = []
     for c in cnts:
         x,y,w,h = cv2.boundingRect(c)
         if (w>h) and (1.5<(w/h)<2.2) and (40<h<190) and (w>140) and (170<(x+(w/2))<330) :  # set filter box coor  (150<(x+(w/2))<350)
@@ -62,4 +77,11 @@ def local_plate(image_name:str, input_form="PATH", DCN_filter = False , Model = 
     # cv2.imshow("blur",blur)
     # cv2.waitKey(0)
     return keep_box_coor ,keep_crop_image, image
+
+def local_CP(img,input_form = "PATH"):
+    if input_form == "PATH":
+        image = cv2.imread(str(image_name)) # hard [4 40 44 38(stuck) 27 23]
+    elif input_form == "IMG":
+        image = img
+    
 
