@@ -2,14 +2,22 @@ import cv2
 import tensorflow as tf
 
 def process_img(img):
-    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-    tensor = tf.constant(gray/255)
+    # gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    tensor = tf.constant(img/255)
     tensor = tf.reshape(tensor, (tensor.shape[0],tensor.shape[1],1), name=None)
     tensor = tf.image.resize(tensor,(100,200))
     tensor = tf.expand_dims(tensor,axis=0)
     return tensor
 
-def local_plate(image_name:str, input_form="PATH", DCN_filter = False , Model = None, detect_thresho = 0.55):
+
+
+
+# Make predictions using the optimized function
+# predictions = predict_fn(input_data)
+# input_signature = [tf.TensorSpec(shape=input_shape, dtype=tf.float32)]
+# predict_fn = tf.function(input_signature=input_signature)(model.call)
+
+def local_plate(image_name:str, input_form="PATH", DCN_filter = False , Model = None, detect_thresho = 0.6):
     if input_form == "PATH":
         image = cv2.imread(image_name) # hard [4 40 44 38(stuck) 27 23]
     elif input_form == "IMG":
@@ -36,11 +44,15 @@ def local_plate(image_name:str, input_form="PATH", DCN_filter = False , Model = 
         keep_crop_image.append(gray[j[3]:j[3]+j[1],j[2]:j[2]+j[0]])
 
     if DCN_filter and Model is not None :
-        for i in keep_crop_image:
-            result =  Model.predict(process_img(i))[0][0]
+        # print("in")
+        for i in range(len(keep_crop_image)):
+            result =  Model(process_img(keep_crop_image[i]))[0][0]
+            # try : result =  Model.predict(process_img(keep_crop_image[i]),verbose=0)[0][0]
+            # except : print("Model predict eror")
+            # print(result)
             if result > detect_thresho:
                 return [keep_box_coor[i]] ,[keep_crop_image[i]], image
-            return [],[],image
+        return [],[],image
 
 
 
