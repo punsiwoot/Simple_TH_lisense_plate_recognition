@@ -1,10 +1,18 @@
 import cv2
 import tensorflow as tf
 import tensorflow.keras.layers as nn
+index = ['0', '1', '10', '11', '12', '13', '14', '15', '16', '17', '18', '19', '2', '20', '21', '22', '23', '24', '25', '26', '27', '28', '29', '3', '30', '31', '32', '33', '34', '35', '36', '37', '38', '39', '4', '40', '41', '42', '43', '44', '45', '46', '47', '48', '49', '5', '50', '51', '52', '53', '54', '6', '7', '8', '9']
+to_char = [ '0','1','2','3','4','5','6','7','8','9','ก', 'ข', 'ฃ', 'ค', 'ฅ', 'ฆ', 'ง', 'จ', 'ฉ', 'ช',
+    'ซ', 'ฌ', 'ญ', 'ฎ', 'ฏ', 'ฐ', 'ฑ', 'ฒ', 'ณ', 'ด',
+    'ต', 'ถ', 'ท', 'ธ', 'น', 'บ', 'ป', 'ผ', 'ฝ', 'พ',
+    'ฟ', 'ภ', 'ม', 'ย', 'ร', 'ล', 'ว', 'ศ', 'ษ', 'ส',
+    'ห', 'ฬ', 'อ', 'ฮ','none']
 
 def process_img(img,Type = "plate",is_gray=False):
     if is_gray:
         img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    if Type == "char" :
+        ret,img = cv2.threshold(img,110,255,cv2.THRESH_BINARY)
     tensor = tf.constant(img/255)
     tensor = tf.reshape(tensor, (tensor.shape[0],tensor.shape[1],1), name=None)
     if Type == "plate":
@@ -86,8 +94,8 @@ def local_plate(image_name, input_form="PATH", DCN_filter = False , Model = None
             # except : print("Model predict eror")
             # print(result)
             if result > detect_thresho:
-                return [keep_box_coor[i]] ,[keep_crop_image[i]], image
-        return [],[],image
+                return [keep_box_coor[i]] ,[keep_crop_image[i]], image , True
+        return [],[],image,False
 
 
 
@@ -121,12 +129,12 @@ def local_CP(img,input_form = "PATH"):
         x,y,w,h = cv2.boundingRect(i)
         if (h>w)and(h>threshold_char)and((h/w)<5):
             if ((h/w)>3):
-                w = w+5
-                x = x-5
-            w=w+5
-            x=x-5
-            h=h+6
-            h=h-6
+                w = w+int(w*0.2)
+                x = x-int(w*0.2/2)
+            w=w+int(w*0.15)
+            x=x-int(w*0.15/2)
+            h=h+int(h*0.05)
+            y=y-int(h*0.05/2)
             count_pp += 1  
             keep_coor_raw.append([x,y,w,h])
             # cv.rectangle(pure_plate_char, (x, y), (x + w, y + h), (36,255,12), 2)
@@ -145,3 +153,13 @@ def local_CP(img,input_form = "PATH"):
         # cv2.imwrite("crop_CP_test/"+str(i)+".jpg",pure_plate_char_cut[keep_coor[i][1]:keep_coor[i][1]+keep_coor[i][3],keep_coor[i][0]:keep_coor[i][0]+keep_coor[i][2]])
         # cv2.rectangle(pure_plate_char, (keep_coor[i][0], keep_coor[i][1]), (keep_coor[i][0] + keep_coor[i][2], keep_coor[i][1] + keep_coor[i][3]), (36,255,12), 2)
     return keep_cut_char, pure_plate_province
+
+def read_plate(list_char,province,rc,is_gray = False):
+    read_char = ""
+    for i in list_char:
+        # rc_result = tf.math.argmax(rc(process_img(i,Type='char'))[0])
+        rc_result = to_char[int(index[int(tf.math.argmax(rc(process_img(i,Type='char',is_gray=is_gray))[0]))])]
+        if rc_result is not "none" : read_char = read_char + str(rc_result) #read_char.append(rc_result)
+    return read_char
+
+
