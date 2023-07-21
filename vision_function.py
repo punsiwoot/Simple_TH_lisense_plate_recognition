@@ -2,13 +2,33 @@ import cv2
 import tensorflow as tf
 import tensorflow.keras.layers as nn
 
-def process_img(img):
-    # gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+def process_img(img,Type = "plate",is_gray=False):
+    if is_gray:
+        img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     tensor = tf.constant(img/255)
     tensor = tf.reshape(tensor, (tensor.shape[0],tensor.shape[1],1), name=None)
-    tensor = tf.image.resize(tensor,(100,200))
+    if Type == "plate":
+        tensor = tf.image.resize(tensor,(100,200))
+    elif Type == "char" :
+        tensor = tf.image.resize(tensor,(200,100))
     tensor = tf.expand_dims(tensor,axis=0)
     return tensor
+
+def get_model_mrc():
+    model = tf.keras.Sequential([
+    # nn.Rescaling(scale=1./255, offset=0.0),
+    nn.Conv2D(filters=40, kernel_size = (5,5), activation='relu', input_shape=(200, 100, 1)),
+    nn.MaxPool2D(pool_size=(2, 2), strides=None, padding="valid", data_format=None),
+    nn.Conv2D(filters=20, kernel_size = (5,5), activation='relu'),
+    nn.MaxPool2D(pool_size=(2, 2), strides=None, padding="valid", data_format=None),
+    nn.Flatten(),
+    nn.Dense(100,activation='relu'),
+    nn.Dense(55,activation='softmax'),
+    ])
+    model.load_weights("weight/rc/weight")
+    input_signature = [tf.TensorSpec(shape=(1,200,100,1), dtype=tf.float32)]
+    model_fn = tf.function(input_signature=input_signature)(model.call)
+    return  model_fn
 
 def get_model_mlpc():
     model = tf.keras.Sequential([
@@ -80,8 +100,48 @@ def local_plate(image_name, input_form="PATH", DCN_filter = False , Model = None
 
 def local_CP(img,input_form = "PATH"):
     if input_form == "PATH":
-        image = cv2.imread(str(image_name)) # hard [4 40 44 38(stuck) 27 23]
+        image_li = cv2.imread(str(img)) # hard [4 40 44 38(stuck) 27 23]
     elif input_form == "IMG":
-        image = img
-    
+        image_li = img
+    pure_plate_char = image_li[:int(image_li.shape[0]*0.65),:]
+    pure_plate_char_cut = pure_plate_char.copy() #pure_plate[:int(pure_plate.shape[0]*0.65),:]
+    threshold_char = pure_plate_char.shape[0]*0.45
+    pure_plate_province = image_li[int(image_li.shape[0]*0.65):,:] #get province
 
+    blurred_pure_plate = cv2.GaussianBlur(pure_plate_char, (0,0), sigmaX=2, sigmaY=2, borderType = cv2.BORDER_DEFAULT)
+    blurred_pure_plate = cv2.GaussianBlur(pure_plate_char, (0,0), sigmaX=2, sigmaY=2, borderType = cv2.BORDER_DEFAULT)
+
+    canny_blurred_pure_plate = cv2.Canny(blurred_pure_plate, 50, 100)
+    find_front = cv2.findContours(canny_blurred_pure_plate, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    find_front = find_front[0] if len(find_front) == 2 else find_front[1]
+    count_pp = 0
+    keep_coor_raw = []
+    keep_coor = []
+    for i in find_front:
+        x,y,w,h = cv2.boundingRect(i)
+        if (h>w)and(h>threshold_char)and((h/w)<5):
+            if ((h/w)>3):
+                w = w+5
+                x = x-5
+            w=w+5
+            x=x-5
+            h=h+6
+            h=h-6
+            count_pp += 1  
+            keep_coor_raw.append([x,y,w,h])
+            # cv.rectangle(pure_plate_char, (x, y), (x + w, y + h), (36,255,12), 2)
+    keep_coor_raw.sort()
+    if (len(keep_coor_raw)>=1):
+        keep_coor.append(keep_coor_raw[0])
+        for i in range(len(keep_coor_raw)-1):
+            i = i+1
+            if ((keep_coor_raw[i][0]-keep_coor_raw[i-1][0]) < 7 ):  # if it close togather
+                if (keep_coor_raw[i][2]>keep_coor_raw[i-1][2]):   # if it more wide
+                    keep_coor[i-1] = keep_coor_raw[i]
+            else : keep_coor.append(keep_coor_raw[i])
+    keep_cut_char = []
+    for i in range(len(keep_coor)):
+        keep_cut_char.append(pure_plate_char_cut[keep_coor[i][1]:keep_coor[i][1]+keep_coor[i][3],keep_coor[i][0]:keep_coor[i][0]+keep_coor[i][2]])
+        # cv2.imwrite("crop_CP_test/"+str(i)+".jpg",pure_plate_char_cut[keep_coor[i][1]:keep_coor[i][1]+keep_coor[i][3],keep_coor[i][0]:keep_coor[i][0]+keep_coor[i][2]])
+        # cv2.rectangle(pure_plate_char, (keep_coor[i][0], keep_coor[i][1]), (keep_coor[i][0] + keep_coor[i][2], keep_coor[i][1] + keep_coor[i][3]), (36,255,12), 2)
+    return keep_cut_char, pure_plate_province
