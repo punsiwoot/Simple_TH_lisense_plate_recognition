@@ -145,7 +145,7 @@ def local_CP(img,input_form = "PATH"):
             i = i+1
             if ((keep_coor_raw[i][0]-keep_coor_raw[i-1][0]) < 7 ):  # if it close togather
                 if (keep_coor_raw[i][2]>keep_coor_raw[i-1][2]):   # if it more wide
-                    keep_coor[i-1] = keep_coor_raw[i]
+                    keep_coor[-1] = keep_coor_raw[i]
             else : keep_coor.append(keep_coor_raw[i])
     keep_cut_char = []
     for i in range(len(keep_coor)):
@@ -159,7 +159,7 @@ def read_plate(list_char,province,rc,is_gray = False):
     for i in list_char:
         # rc_result = tf.math.argmax(rc(process_img(i,Type='char'))[0])
         rc_result = to_char[int(index[int(tf.math.argmax(rc(process_img(i,Type='char',is_gray=is_gray))[0]))])]
-        if rc_result is not "none" : read_char = read_char + str(rc_result) #read_char.append(rc_result)
+        if rc_result != "none" : read_char = read_char + str(rc_result) #read_char.append(rc_result)
     return read_char
 
 
