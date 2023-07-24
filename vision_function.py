@@ -1,6 +1,8 @@
 import cv2
 import tensorflow as tf
 import tensorflow.keras.layers as nn
+import matplotlib.pyplot as plt 
+
 index = ['0', '1', '10', '11', '12', '13', '14', '15', '16', '17', '18', '19', '2', '20', '21', '22', '23', '24', '25', '26', '27', '28', '29', '3', '30', '31', '32', '33', '34', '35', '36', '37', '38', '39', '4', '40', '41', '42', '43', '44', '45', '46', '47', '48', '49', '5', '50', '51', '52', '53', '54', '6', '7', '8', '9']
 to_char = [ '0','1','2','3','4','5','6','7','8','9','ก', 'ข', 'ฃ', 'ค', 'ฅ', 'ฆ', 'ง', 'จ', 'ฉ', 'ช',
     'ซ', 'ฌ', 'ญ', 'ฎ', 'ฏ', 'ฐ', 'ฑ', 'ฒ', 'ณ', 'ด',
@@ -104,7 +106,7 @@ def local_plate(image_name, input_form="PATH", DCN_filter = False , Model = None
     # cv2.imshow('image', image)
     # cv2.imshow("blur",blur)
     # cv2.waitKey(0)
-    return keep_box_coor ,keep_crop_image, image
+    return keep_box_coor ,keep_crop_image, image, False
 
 def local_CP(img,input_form = "PATH"):
     if input_form == "PATH":
@@ -119,7 +121,7 @@ def local_CP(img,input_form = "PATH"):
     blurred_pure_plate = cv2.GaussianBlur(pure_plate_char, (0,0), sigmaX=2, sigmaY=2, borderType = cv2.BORDER_DEFAULT)
     blurred_pure_plate = cv2.GaussianBlur(pure_plate_char, (0,0), sigmaX=2, sigmaY=2, borderType = cv2.BORDER_DEFAULT)
 
-    canny_blurred_pure_plate = cv2.Canny(blurred_pure_plate, 50, 100)
+    canny_blurred_pure_plate = cv2.Canny(blurred_pure_plate, 100, 200)  #50 100
     find_front = cv2.findContours(canny_blurred_pure_plate, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     find_front = find_front[0] if len(find_front) == 2 else find_front[1]
     count_pp = 0
@@ -143,8 +145,8 @@ def local_CP(img,input_form = "PATH"):
         keep_coor.append(keep_coor_raw[0])
         for i in range(len(keep_coor_raw)-1):
             i = i+1
-            if ((keep_coor_raw[i][0]-keep_coor_raw[i-1][0]) < 7 ):  # if it close togather
-                if (keep_coor_raw[i][2]>keep_coor_raw[i-1][2]):   # if it more wide
+            if ((keep_coor_raw[i][0]-keep_coor[-1][0]) < keep_coor[-1][2]/2 ):  # if it close togather
+                if (keep_coor_raw[i][2]>keep_coor[-1][2]):   # if it more wide
                     keep_coor[-1] = keep_coor_raw[i]
             else : keep_coor.append(keep_coor_raw[i])
     keep_cut_char = []
@@ -152,7 +154,7 @@ def local_CP(img,input_form = "PATH"):
         keep_cut_char.append(pure_plate_char_cut[keep_coor[i][1]:keep_coor[i][1]+keep_coor[i][3],keep_coor[i][0]:keep_coor[i][0]+keep_coor[i][2]])
         # cv2.imwrite("crop_CP_test/"+str(i)+".jpg",pure_plate_char_cut[keep_coor[i][1]:keep_coor[i][1]+keep_coor[i][3],keep_coor[i][0]:keep_coor[i][0]+keep_coor[i][2]])
         # cv2.rectangle(pure_plate_char, (keep_coor[i][0], keep_coor[i][1]), (keep_coor[i][0] + keep_coor[i][2], keep_coor[i][1] + keep_coor[i][3]), (36,255,12), 2)
-    return keep_cut_char, pure_plate_province
+    return keep_cut_char, pure_plate_province , keep_coor
 
 def read_plate(list_char,province,rc,is_gray = False):
     read_char = ""
