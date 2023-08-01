@@ -26,7 +26,13 @@ def process_img(img,Type = "plate",is_gray=False):
         img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     if Type == "char" :
         ret,img = cv2.threshold(img,110,255,cv2.THRESH_BINARY)
+        img = abs(255-img)
         pass
+    elif Type == "province":
+        # ret,img = cv2.threshold(img,110,255,cv2.THRESH_BINARY)
+        img = abs(255-img)
+        pass
+
 
     tensor = tf.constant(img/255)
     tensor = tf.reshape(tensor, (tensor.shape[0],tensor.shape[1],1), name=None)
@@ -34,6 +40,9 @@ def process_img(img,Type = "plate",is_gray=False):
         tensor = tf.image.resize(tensor,(100,200))
     elif Type == "char" :
         tensor = tf.image.resize(tensor,(200,100))
+    elif Type == "province":
+        
+        tensor = tf.image.resize(tensor,(100,500))
     tensor = tf.expand_dims(tensor,axis=0)
     return tensor
 
@@ -133,9 +142,9 @@ def local_CP(img,input_form = "PATH"):
     # pure_plate_char = image_li[int(image_li.shape[0]*0.10):int(image_li.shape[0]*0.65),int(image_li.shape[1]*0.1):int(image_li.shape[1]*0.9)]
     pure_plate_char = image_li[:int(image_li.shape[0]*0.65),:]
     pure_plate_char_cut = pure_plate_char.copy() #pure_plate[:int(pure_plate.shape[0]*0.65),:]
-    threshold_char = pure_plate_char.shape[0]*0.45
+    threshold_char_h1,threshold_char_h2,threshold_char_w = pure_plate_char.shape[0]*0.5,pure_plate_char.shape[0]*0.9,pure_plate_char.shape[1]*0.2
     # pure_plate_province = image_li[int(image_li.shape[0]*0.65):int(image_li.shape[0]*0.90),int(image_li.shape[1]*0.15):int(image_li.shape[1]*0.85)] #get province
-    pure_plate_province = image_li[int(image_li.shape[0]*0.65):,:] #get province  
+    pure_plate_province = image_li[int(image_li.shape[0]*0.65):int(image_li.shape[0]*0.9),int(image_li.shape[1]*0.1):int(image_li.shape[1]*0.9)] #get province  
 
     blurred_pure_plate = pure_plate_char
     # blurred_pure_plate = cv2.GaussianBlur(pure_plate_char, (0,0), sigmaX=2, sigmaY=2, borderType = cv2.BORDER_DEFAULT)
@@ -149,7 +158,7 @@ def local_CP(img,input_form = "PATH"):
     keep_coor = []
     for i in find_front:
         x,y,w,h = cv2.boundingRect(i)
-        if (h>w)and(h>threshold_char)and((h/w)<5):
+        if (h>w)and(threshold_char_h1<h<threshold_char_h2)and((h/w)<5)and((w<threshold_char_w)):
             if ((h/w)>3):
                 w = w+int(w*0.2)
                 x = x-int(w*0.2/2)
