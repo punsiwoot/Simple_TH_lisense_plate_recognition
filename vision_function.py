@@ -2,6 +2,8 @@ import cv2
 import tensorflow as tf
 import tensorflow.keras.layers as nn
 import matplotlib.pyplot as plt 
+from PIL import ImageFont, ImageDraw, Image
+import numpy as np
 
 index = ['0', '1', '10', '11', '12', '13', '14', '15', '16', '17', '18', '19', '2', '20', '21', '22', '23', '24', '25', '26', '27', '28', '29', '3', '30', '31', '32', '33', '34', '35', '36', '37', '38', '39', '4', '40', '41', '42', '43', '44', '45', '46', '47', '48', '49', '5', '50', '51', '52', '53', '54', '6', '7', '8', '9']
 to_char = [ '0','1','2','3','4','5','6','7','8','9','ก', 'ข', 'ฃ', 'ค', 'ฅ', 'ฆ', 'ง', 'จ', 'ฉ', 'ช',
@@ -10,11 +12,22 @@ to_char = [ '0','1','2','3','4','5','6','7','8','9','ก', 'ข', 'ฃ', 'ค', 
     'ฟ', 'ภ', 'ม', 'ย', 'ร', 'ล', 'ว', 'ศ', 'ษ', 'ส',
     'ห', 'ฬ', 'อ', 'ฮ','none']
 
+def write_th_front(img,text,x,y):
+    fontpath = "front/angsana.ttc"
+    font = ImageFont.truetype(fontpath, 45)
+    img_pil = Image.fromarray(img)
+    draw = ImageDraw.Draw(img_pil)
+    draw.text((x, y),  str(text), font = font, fill = (0, 255, 0, 0))
+    img = np.array(img_pil)
+    return img
+
 def process_img(img,Type = "plate",is_gray=False):
     if is_gray:
         img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     if Type == "char" :
         ret,img = cv2.threshold(img,110,255,cv2.THRESH_BINARY)
+        pass
+
     tensor = tf.constant(img/255)
     tensor = tf.reshape(tensor, (tensor.shape[0],tensor.shape[1],1), name=None)
     if Type == "plate":
@@ -113,13 +126,20 @@ def local_CP(img,input_form = "PATH"):
         image_li = cv2.imread(str(img)) # hard [4 40 44 38(stuck) 27 23]
     elif input_form == "IMG":
         image_li = img
+
+    #tranfrom for method 2
+    ret,image_li = cv2.threshold(image_li,110,255,cv2.THRESH_BINARY)
+
+    # pure_plate_char = image_li[int(image_li.shape[0]*0.10):int(image_li.shape[0]*0.65),int(image_li.shape[1]*0.1):int(image_li.shape[1]*0.9)]
     pure_plate_char = image_li[:int(image_li.shape[0]*0.65),:]
     pure_plate_char_cut = pure_plate_char.copy() #pure_plate[:int(pure_plate.shape[0]*0.65),:]
     threshold_char = pure_plate_char.shape[0]*0.45
-    pure_plate_province = image_li[int(image_li.shape[0]*0.65):,:] #get province
+    # pure_plate_province = image_li[int(image_li.shape[0]*0.65):int(image_li.shape[0]*0.90),int(image_li.shape[1]*0.15):int(image_li.shape[1]*0.85)] #get province
+    pure_plate_province = image_li[int(image_li.shape[0]*0.65):,:] #get province  
 
-    blurred_pure_plate = cv2.GaussianBlur(pure_plate_char, (0,0), sigmaX=2, sigmaY=2, borderType = cv2.BORDER_DEFAULT)
-    blurred_pure_plate = cv2.GaussianBlur(pure_plate_char, (0,0), sigmaX=2, sigmaY=2, borderType = cv2.BORDER_DEFAULT)
+    blurred_pure_plate = pure_plate_char
+    # blurred_pure_plate = cv2.GaussianBlur(pure_plate_char, (0,0), sigmaX=2, sigmaY=2, borderType = cv2.BORDER_DEFAULT)
+    # blurred_pure_plate = cv2.GaussianBlur(pure_plate_char, (0,0), sigmaX=2, sigmaY=2, borderType = cv2.BORDER_DEFAULT)
 
     canny_blurred_pure_plate = cv2.Canny(blurred_pure_plate, 100, 200)  #50 100
     find_front = cv2.findContours(canny_blurred_pure_plate, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
@@ -158,10 +178,17 @@ def local_CP(img,input_form = "PATH"):
 
 def read_plate(list_char,province,rc,is_gray = False):
     read_char = ""
+    province = ""
     for i in list_char:
         # rc_result = tf.math.argmax(rc(process_img(i,Type='char'))[0])
         rc_result = to_char[int(index[int(tf.math.argmax(rc(process_img(i,Type='char',is_gray=is_gray))[0]))])]
         if rc_result != "none" : read_char = read_char + str(rc_result) #read_char.append(rc_result)
-    return read_char
+    return read_char 
 
+def rotate_image(image, angle):
+  image_center = tuple(np.array(image.shape[1::-1]) / 2)
+#   print(image_center)
+  rot_mat = cv2.getRotationMatrix2D(image_center, angle, 1.0)
+  result = cv2.warpAffine(image, rot_mat, image.shape[1::-1], flags=cv2.INTER_LINEAR)
+  return result
 
