@@ -252,10 +252,10 @@ def read_plate(list_char,province,rc,rp,is_gray = False,skip_eror_rc=False,skip_
             if rc_result != "none" : read_char = read_char + str(rc_result) #read_char.append(rc_result)
     if skip_eror_rp:
         try:
-            province = to_province[int(index_province[tf.argmax(rp(process_img(province,is_gray=is_gray,Type='province'))[0])])]
+            province = to_province[int(index_province_IN[tf.argmax(rp(process_img(province,is_gray=is_gray,Type='province'))[0])])]
         except:
             province = "rp eror"
-    else : province = to_province[int(index_province[tf.argmax(rp(process_img(province,is_gray=is_gray,Type='province'))[0])])]
+    else : province = to_province[int(index_province_IN[tf.argmax(rp(process_img(province,is_gray=is_gray,Type='province'))[0])])]
 
     return read_char , province
 
@@ -266,3 +266,26 @@ def rotate_image(image, angle):
   result = cv2.warpAffine(image, rot_mat, image.shape[1::-1], flags=cv2.INTER_LINEAR)
   return result
 
+def read_lisense_plate(image_cv,mrc,mrp_IN,mlpc,show_result = False,ds = 0.55): #frame from opencv
+    is_found = False
+    coor,crop_img,image_cv,is_found = local_plate(image_cv,"IMG",DCN_filter = True,Model = mlpc,detect_thresho=ds)
+    if show_result:
+        for i in coor :
+            cv2.rectangle(image_cv, (i[2], i[3]), (i[2] + i[0], i[3] + i[1]), (36, 255, 12), 2)   #x y w h 0 1 2 3    w h x y 0 1 2 3 -- 2 3 0 1
+    # print(is_found)
+    if is_found:
+        keep_cut_char , pure_plate_province,keep_coor = local_CP(img = crop_img[0], input_form="IMG")
+        if len(keep_cut_char)<2 :
+            return ['eror','',''] , image_cv
+            print("something wrong")
+        else :
+            read_char,read_province = read_plate(list_char = keep_cut_char,province= pure_plate_province,rc = mrc,rp = mrp_IN,
+                                                 is_gray=False,skip_eror_rc=True,skip_eror_rp=True)
+            # cv2.imwrite("province_looklike.jpg",pure_plate_province)
+            # try : result = read_plate(keep_cut_char,"none",mrc,is_gray=False)
+            # except : result = "cant read"
+            if show_result :
+                image_cv = write_th_front(image_cv,read_province,x=coor[0][2],y=coor[0][3]+20)
+                image_cv = write_th_front(image_cv,read_char,x=coor[0][2],y=coor[0][3])
+            return ['found',read_province,read_char] , image_cv
+    else : return ['not found','',''], image_cv
