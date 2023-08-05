@@ -19,6 +19,11 @@ index_province = ['0', '1', '10', '11', '12', '13', '14', '15', '16', '17', '18'
                 '4', '40', '41', '42', '43', '44', '45', '46', '47', '48', '49', '5', '50', '51', '52', '53', '54',
                 '55', '56', '57', '58', '59', '6', '60', '61', '62', '63', '64', '65', '66', '67', '68', '69', '7',
                 '70', '71', '72', '73', '74', '75', '76', '77', '8', '9']
+index_province_IN = ['0', '1', '10', '11', '12', '13', '14', '15', '16', '17', '18', '19', '2', '20', '21', '22', '23',
+                '24', '25', '26', '27', '28', '29', '3', '30', '31', '32', '33', '34', '35', '36', '37', '38', '39',
+                '4', '40', '41', '42', '43', '44', '45', '46', '47', '48', '49', '5', '50', '51', '52', '53', '54',
+                '55', '56', '57', '58', '59', '6', '60', '61', '62', '63', '64', '65', '66', '67', '68', '69', '7',
+                '70', '71', '72', '73', '74', '75', '76', '8', '9']
 to_province = ['กรุงเทพมหานคร', 'อำนาจเจริญ', 'อ่างทอง', 'บึงกาฬ', 'บุรีรัมย์', 'ฉะเชิงเทรา', 'ชัยนาท', 'ชัยภูมิ', 'จันทบุรี', 'เชียงใหม่', 'เชียงราย', 'ชลบุรี', 'ชุมพร', 'กาฬสินธุ์', 'กำแพงเพชร', 'กาญจนบุรี', 'ขอนแก่น',
                 'กระบี่', 'ลำปาง', 'ลำพูน', 'เลย', 'ลพบุรี', 'แม่ฮ่องสอน', 'มหาสารคาม', 'มุกดาหาร', 'นครนายก', 'นครปฐม', 'นครพนม', 'นครราชสีมา', 'นครสวรรค์', 'นครศรีธรรมราช', 'น่าน', 'นราธิวาส', 'หนองบัวลำภู',
                 'หนองคาย', 'นนทบุรี', 'ปทุมธานี', 'ปัตตานี', 'พังงา', 'พัทลุง', 'พะเยา', 'เพชรบูรณ์', 'เพชรบุรี', 'พิจิตร', 'พิษณุโลก', 'พระนครศรีอยุธยา', 'แพร่', 'ภูเก็ต', 'ปราจีนบุรี', 'ประจวบคีรีขันธ์', 'ระนอง',
@@ -86,6 +91,21 @@ def get_model_mpc():
     nn.Dense(78,activation='softmax'),
     ])
     model.load_weights("weight/rp/weight")
+    input_signature = [tf.TensorSpec(shape=(1,100,500,1), dtype=tf.float32)]
+    model_fn = tf.function(input_signature=input_signature)(model.call)
+    return  model_fn
+
+def get_model_mpc_IN():
+    model = tf.keras.Sequential([
+    nn.Conv2D(filters=40, kernel_size = (5,5), activation='relu', input_shape=(100, 500, 1)),
+    nn.MaxPool2D(pool_size=(2, 2), strides=None, padding="valid", data_format=None),
+    nn.Conv2D(filters=20, kernel_size = (5,5), activation='relu'),
+    nn.MaxPool2D(pool_size=(2, 2), strides=None, padding="valid", data_format=None),
+    nn.Flatten(),
+    nn.Dense(100,activation='relu'),
+    nn.Dense(77,activation='softmax'),
+    ])
+    model.load_weights("weight/rp_IN/weight")
     input_signature = [tf.TensorSpec(shape=(1,100,500,1), dtype=tf.float32)]
     model_fn = tf.function(input_signature=input_signature)(model.call)
     return  model_fn
