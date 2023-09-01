@@ -54,6 +54,7 @@ def process_img(img,Type = "plate",is_gray=False):
 
     tensor = tf.constant(img/255)
     tensor = tf.reshape(tensor, (tensor.shape[0],tensor.shape[1],1), name=None)
+    
     if Type == "plate":
         tensor = tf.image.resize(tensor,(100,200))
     elif Type == "char" :
