@@ -267,13 +267,15 @@ def rotate_image(image, angle):
   result = cv2.warpAffine(image, rot_mat, image.shape[1::-1], flags=cv2.INTER_LINEAR)
   return result
 
-def read_lisense_plate(image_cv,mrc,mrp_IN,mlpc,show_result = False,ds = 0.55): #frame from opencv
+def read_lisense_plate(image_cv,mrc,mrp_IN,mlpc,show_result = False,ds = 0.55,save_crop_img = False): #frame from opencv
     is_found = False
     coor,crop_img,image_cv,is_found = local_plate(image_cv,"IMG",DCN_filter = True,Model = mlpc,detect_thresho=ds)
     if show_result:
         for i in coor :
             cv2.rectangle(image_cv, (i[2], i[3]), (i[2] + i[0], i[3] + i[1]), (36, 255, 12), 2)   #x y w h 0 1 2 3    w h x y 0 1 2 3 -- 2 3 0 1
     # print(is_found)
+    if save_crop_img and is_found :
+                cv2.imwrite("crop.jpg",crop_img[0])
     if is_found:
         keep_cut_char , pure_plate_province,keep_coor = local_CP(img = crop_img[0], input_form="IMG")
         if len(keep_cut_char)<2 :
