@@ -76,7 +76,7 @@ def get_model_mrc():
     nn.Dense(100,activation='relu'),
     nn.Dense(55,activation='softmax'),
     ])
-    model.load_weights("weight/rc/weight")
+    model.load_weights("weight/rc_2/weight")
     input_signature = [tf.TensorSpec(shape=(1,200,100,1), dtype=tf.float32)]
     model_fn = tf.function(input_signature=input_signature)(model.call)
     return  model_fn
